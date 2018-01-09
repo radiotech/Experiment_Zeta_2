@@ -29,7 +29,7 @@ var View = /** @class */ (function () {
         UI.downs.add('mb_0', new NamedFunction('place', function () { return console.log(_this.pixelToGrid(UI.mouseX(), UI.mouseY())); }));
         UI.downs.add('mb_0', new NamedFunction('place', function () {
             var v = _this.pixelToGrid(UI.mouseX(), UI.mouseY());
-            _this.dim.setAt(v.getX(), v.getY(), Material.byID[(_this.dim.getAt(v.getX(), v.getY()).id + 1) % 5]);
+            _this.dim.setAt(v.getX(), v.getY(), Material.byID[(_this.dim.getAt(v.getX(), v.getY()).m.id + 1) % 5]);
         }));
         UI.holds.add('mb_1', new NamedFunction('mclick', function () {
             for (var i = 0; i < Dim.w; i++) {
@@ -60,7 +60,7 @@ var View = /** @class */ (function () {
             for (var j = -H, _j = gridH + 2.1 * H; j < _j; j += H) {
                 var iOff = i - gridOffX;
                 var jOff = j - gridOffY;
-                this.blockG.beginFill(this.dim.getLeft(gridX + i, gridY + j).color);
+                this.blockG.beginFill(this.dim.getLeft(gridX + i, gridY + j).m.color);
                 if (this.dim.isUp(gridX + i, gridY + j)) {
                     this.blockG.drawPolygon([iOff * screenW, jOff * screenH, (iOff + W) * screenW, (jOff + H) * screenH, (iOff - W) * screenW, (jOff + H) * screenH]);
                 }

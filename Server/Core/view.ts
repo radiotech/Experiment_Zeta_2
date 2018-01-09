@@ -45,7 +45,7 @@ class View {
         UI.downs.add('mb_0', new NamedFunction('place', ()=>console.log(this.pixelToGrid(UI.mouseX(),UI.mouseY()))));
         UI.downs.add('mb_0', new NamedFunction('place', ()=>{
             let v = this.pixelToGrid(UI.mouseX(),UI.mouseY());
-            this.dim.setAt(v.getX(), v.getY(), Material.byID[(this.dim.getAt(v.getX(),v.getY()).id+1)%5]);
+            this.dim.setAt(v.getX(), v.getY(), Material.byID[(this.dim.getAt(v.getX(),v.getY()).m.id+1)%5]);
         }));
         UI.holds.add('mb_1', new NamedFunction('mclick', ()=>{
             
@@ -79,7 +79,7 @@ class View {
             for(let j = -H, _j = gridH+2.1*H; j < _j; j+=H){
                 let iOff = i-gridOffX;
                 let jOff = j-gridOffY;
-                this.blockG.beginFill(this.dim.getLeft(gridX+i,gridY+j).color);
+                this.blockG.beginFill(this.dim.getLeft(gridX+i,gridY+j).m.color);
                 if(this.dim.isUp(gridX+i,gridY+j)){
                     this.blockG.drawPolygon([iOff*screenW,jOff*screenH, (iOff+W)*screenW,(jOff+H)*screenH, (iOff-W)*screenW,(jOff+H)*screenH]);
                 } else {

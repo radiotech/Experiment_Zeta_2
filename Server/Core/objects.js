@@ -10,7 +10,7 @@ var Solid = /** @class */ (function () {
         this.c = args.color || 0xff0000;
         this.w = args.width || 1;
         this.h = args.height || 1;
-        this.bound = args.bound || Bound.ellipse(this.w, this.h, 6);
+        this.bound = args.bound || Bound.ellipse(this.w);
         this.deltaMove = args.deltaMove || this.bound.length > 1 ? VecOp.dis(this.bound[0], this.bound[1]) : this.w / 10;
         this.deltaTouch = args.deltaTouch || this.deltaMove / 10;
         this.boundWidth = this.w / 4;
@@ -99,7 +99,7 @@ var Solid = /** @class */ (function () {
                 var orth = VecOp.dot(movement, Tile.axisOrths[move.axis]);
                 var bounce_1 = 0;
                 move.tiles.forEach(function (t) {
-                    bounce_1 += t.bounce;
+                    bounce_1 += t.m.bounce;
                 });
                 bounce_1 /= move.tiles.length;
                 movement = new PVector(Tile.axisParas[move.axis].x * para - Tile.axisOrths[move.axis].x * orth * bounce_1, Tile.axisParas[move.axis].y * para - Tile.axisOrths[move.axis].y * orth * bounce_1);
@@ -185,15 +185,15 @@ var Solid = /** @class */ (function () {
                 tilesAfter.forEach(function (t) { return t.setXY(t.x * W, t.y * H + H / 2); });
                 tilesAfter = tilesAfter.map(function (t) { return unRotate(t, xAxis, yAxis); });
                 var matsAfter = tilesAfter.map(function (t) { return _this.dim.getAt(t.x, t.y); });
-                if (matsAfter.some(function (t) { return t.solid; })) {
+                if (matsAfter.some(function (t) { return t.m.solid; })) {
                     var tilesBefore = _this.dim.tilesInRegion(rotPos.x + rotOffset.x * (toHit - .001) - _this.boundWidth, rotPos.y + rotOffset.y * (toHit - .001) - _this.boundHeight, rotPos.x + rotOffset.x * (toHit - .001) + _this.boundWidth, rotPos.y + rotOffset.y * (toHit - .001) + _this.boundHeight);
                     tilesBefore.forEach(function (t) { return t.setXY(t.x * W, t.y * H + H / 2); });
                     tilesBefore = tilesBefore.map(function (t) { return unRotate(t, xAxis, yAxis); });
-                    if (tilesBefore.every(function (t) { return !_this.dim.getAt(t.x, t.y).solid; })) {
+                    if (tilesBefore.every(function (t) { return !_this.dim.getAt(t.x, t.y).m.solid; })) {
                         var hitTiles = tilesAfter.map(function (t) { return _this.dim.getAt(t.x, t.y); });
                         var remainder = PVector.clone(offset);
                         VecOp.mult(remainder, (1 - (toHit - .001)));
-                        return { hit: true, dis: toHit - .001, tiles: matsAfter.filter(function (t) { return t.solid; }), axis: axis, remainder: remainder };
+                        return { hit: true, dis: toHit - .001, tiles: matsAfter.filter(function (t) { return t.m.solid; }), axis: axis, remainder: remainder };
                     }
                 }
                 //tilesAfter.forEach(t=>this.dim.setAt(t.x,t.y,Material.byID[4]));
@@ -216,102 +216,99 @@ var Solid = /** @class */ (function () {
         this.p.addY(offset.y * move.dis);
         return move;
     };
-    Solid.prototype.moveByOLD = function (offset) {
-        if (offset.getX() == 0 && offset.getY() == 0) {
+    /*
+    moveByOLD(offset: Vector){
+        if(offset.getX() == 0 && offset.getY() == 0){ //no movement
             return undefined;
         }
-        if (!this.touches()) {
-            var steps = Math.ceil(offset.getMag() / this.deltaMove);
-            var stepX = offset.getX() / steps;
-            var stepY = offset.getY() / steps;
-            for (var i = 1; i <= steps; i++) {
-                var touchData = this.touches(stepX * i, stepY * i, true);
-                if (touchData != undefined) {
-                    var touch = this.touch(stepX * (i - 1), stepY * (i - 1), stepX * i, stepY * i);
-                    VecOp.add(this.p, touch.off);
-                    if (touch.data != undefined) {
+        if(!this.touches()){ //only check for collisions if not already colliding
+            let steps = Math.ceil(offset.getMag()/this.deltaMove);
+            let stepX = offset.getX()/steps;
+            let stepY = offset.getY()/steps;
+            for(let i = 1; i <= steps; i++){
+                let touchData: any = this.touches(stepX*i,stepY*i,true);
+                if(touchData != undefined){
+                    let touch = this.touch(stepX*(i-1),stepY*(i-1),stepX*i,stepY*i);
+                    VecOp.add(this.p,touch.off);
+                    if(touch.data != undefined){
                         touchData = touch.data;
                     }
-                    return { force: new PVector(offset.x - touch.off.x, offset.y - touch.off.y), surface: touchData };
+                    return {force:new PVector(offset.x-touch.off.x,offset.y-touch.off.y),surface:touchData};
                 }
             }
         }
-        VecOp.add(this.p, offset);
+        VecOp.add(this.p,offset);
         return undefined;
-    };
-    Solid.prototype.touches = function (offX, offY, reportSide) {
-        if (offX === void 0) { offX = 0; }
-        if (offY === void 0) { offY = 0; }
-        if (reportSide === void 0) { reportSide = false; }
+    }
+    */
+    /*
+    touches(offX = 0, offY = 0, reportSide = false){
         //checks if this object collides with blocks with a given offset from current pos
-        var posX = this.p.getX() + offX;
-        var posY = this.p.getY() + offY;
-        var pos = new PVector(posX, posY);
-        if (this.bound.length > 1) {
+        let posX = this.p.getX()+offX;
+        let posY = this.p.getY()+offY;
+        let pos = new PVector(posX,posY);
+        if(this.bound.length > 1){
             //outer bound
-            var outerX1 = posX - this.outerBox.getX() / 2;
-            var outerY1 = posY - this.outerBox.getY() / 2;
-            var outerX2 = posX + this.outerBox.getX() / 2;
-            var outerY2 = posY + this.outerBox.getY() / 2;
+            let outerX1 = posX-this.outerBox.getX()/2;
+            let outerY1 = posY-this.outerBox.getY()/2;
+            let outerX2 = posX+this.outerBox.getX()/2;
+            let outerY2 = posY+this.outerBox.getY()/2;
             //inner bound
-            var innerX1 = posX - this.innerBox.getX() / 2;
-            var innerY1 = posY - this.innerBox.getY() / 2;
-            var innerX2 = posX + this.innerBox.getX() / 2;
-            var innerY2 = posY + this.innerBox.getY() / 2;
+            let innerX1 = posX-this.innerBox.getX()/2;
+            let innerY1 = posY-this.innerBox.getY()/2;
+            let innerX2 = posX+this.innerBox.getX()/2;
+            let innerY2 = posY+this.innerBox.getY()/2;
             //find hits
-            var hits = this.dim.blocksInRegion(outerX1, outerY1, outerX2, outerY2);
+            let hits = this.dim.blocksInRegion(outerX1,outerY1,outerX2,outerY2);
             //copy type of hits
-            var innerHits = hits;
-            var outerHits = hits;
+            let innerHits = hits;
+            let outerHits = hits;
             innerHits = [];
             outerHits = [];
             //sort hits into inner (collide) and outer (might collide)
-            for (var i = 0; i < hits.length; i++) {
-                var h = hits[i];
-                var dis = VecOp.dis(pos, h.p);
-                if (dis < this.outerRadius) {
-                    if (dis < this.innerRadius || (h.p.getX() > innerX1 && h.p.getX() < innerX2 && h.p.getY() > innerY1 && h.p.getY() < innerY2)) {
+            for(let i = 0; i < hits.length; i++) {
+                let h = hits[i];
+                let dis = VecOp.dis(pos,h.p);
+                if(dis < this.outerRadius){
+                    if(dis < this.innerRadius || (h.p.getX()>innerX1&&h.p.getX()<innerX2&&h.p.getY()>innerY1&&h.p.getY()<innerY2)){
                         innerHits.push(h);
-                    }
-                    else {
+                    } else {
                         outerHits.push(h);
                     }
                 }
             }
             //if inner has solid, touching
-            for (var i = 0; i < innerHits.length; i++) {
-                var h = innerHits[i];
-                if (h.b.some(function (x) { return x.solid; })) {
-                    if (reportSide) {
-                        var angles = Bound.boundAngles(h.p, posX, posY, this.bound);
-                        var inSide = this.inSide(angles);
+            for(let i = 0; i < innerHits.length; i++) {
+                let h = innerHits[i];
+                if(h.b.some(x=>x.solid)){
+                    if(reportSide){
+                        let angles = Bound.boundAngles(h.p,posX,posY,this.bound);
+                        let inSide = this.inSide(angles);
                         return {
                             para: this.boundParas[inSide],
                             orth: this.boundOrths[inSide],
-                            tiles: h.b.filter(function (b) { return b.solid; })
-                        };
-                    }
-                    else {
+                            tiles: h.b.filter(b=>b.solid)
+                        }
+                    } else {
                         console.log(1);
                         return true;
                     }
                 }
             }
             //if outer has solid and is within the bounds, touching
-            for (var i = 0; i < outerHits.length; i++) {
-                var h = outerHits[i];
-                if (h.b.some(function (x) { return x.solid; })) {
-                    var angles = Bound.boundAngles(h.p, posX, posY, this.bound);
-                    if (this.containsPoint(angles)) {
-                        if (reportSide) {
-                            var inSide = this.inSide(angles);
+            for(let i = 0; i < outerHits.length; i++) {
+                let h = outerHits[i];
+                if(h.b.some(x=>x.solid)){
+                    let angles = Bound.boundAngles(h.p,posX,posY,this.bound);
+                    if(this.containsPoint(angles)){
+                        if(reportSide){
+                            let inSide = this.inSide(angles);
                             return {
                                 para: this.boundParas[inSide],
                                 orth: this.boundOrths[inSide],
-                                tiles: h.b.filter(function (b) { return b.solid; })
-                            };
-                        }
-                        else {
+                                tiles: h.b.filter(b=>b.solid)
+                            }
+                        } else {
                             console.log(1);
                             return true;
                         }
@@ -319,62 +316,63 @@ var Solid = /** @class */ (function () {
                 }
             }
         }
-        for (var i = 0; i < this.bound.length; i++) {
-            var hitPos = new PVector(posX + this.bound[i].getX(), posY + this.bound[i].getY());
-            var tile = this.dim.getAt(hitPos.getX(), hitPos.getY());
-            if (tile.solid) {
-                if (reportSide) {
-                    var tilePos = this.dim.originAt(hitPos);
-                    var useUp = this.dim.isUpAt(hitPos.x, hitPos.y);
-                    var inSide = this.inSide(Bound.boundAngles(hitPos, tilePos.x, tilePos.y, useUp ? Tile.upBound : Tile.dnBound));
+        for(let i = 0; i < this.bound.length; i++){
+            let hitPos = new PVector(posX+this.bound[i].getX(),posY+this.bound[i].getY());
+            let tile = this.dim.getAt(hitPos.getX(),hitPos.getY());
+            if(tile.solid){
+                if(reportSide){
+                    let tilePos = this.dim.originAt(hitPos);
+                    let useUp = this.dim.isUpAt(hitPos.x,hitPos.y);
+                    let inSide = this.inSide(Bound.boundAngles(hitPos,tilePos.x,tilePos.y,useUp?Tile.upBound:Tile.dnBound));
                     return {
-                        para: useUp ? Tile.upBoundParas[inSide] : Tile.dnBoundParas[inSide],
-                        orth: useUp ? Tile.upBoundOrths[inSide] : Tile.dnBoundOrths[inSide],
-                        tiles: [this.dim.getAt(hitPos.getX(), hitPos.getY())]
-                    };
-                }
-                else {
+                        para: useUp?Tile.upBoundParas[inSide]:Tile.dnBoundParas[inSide],
+                        orth: useUp?Tile.upBoundOrths[inSide]:Tile.dnBoundOrths[inSide],
+                        tiles: [this.dim.getAt(hitPos.getX(),hitPos.getY())]
+                    }
+                } else {
                     console.log(1);
                     return true;
                 }
             }
         }
-        return reportSide ? undefined : false;
-    };
-    Solid.prototype.touch = function (offXA, offYA, offXB, offYB) {
+        return reportSide?undefined:false;
+    }
+    */
+    /*
+    touch(offXA: number, offYA: number, offXB: number, offYB: number){
         //given point A, known not touching, and point b, known touching, returns a point c, <= deltaTouch from touching
-        var touchData = undefined;
-        var lastTouchData = undefined;
-        var disX = offXB - offXA;
-        var disY = offYB - offYA;
-        var offX = disX / 2;
-        var offY = disY / 2;
-        var shiftX = disX / 2;
-        var shiftY = disY / 2;
-        var shift = Math.sqrt(disX * disX + disY * disY) / 2;
-        while (shift > this.deltaTouch) {
+        let touchData = undefined;
+        let lastTouchData = undefined;
+        let disX = offXB-offXA;
+        let disY = offYB-offYA;
+        let offX = disX/2;
+        let offY = disY/2;
+        let shiftX = disX/2;
+        let shiftY = disY/2;
+        let shift = Math.sqrt(disX*disX+disY*disY)/2;
+        while(shift > this.deltaTouch){
             shiftX /= 2;
             shiftY /= 2;
             shift /= 2;
-            touchData = this.touches(offXA + offX, offYA + offY, true);
-            if (touchData != undefined) {
+            touchData = this.touches(offXA+offX,offYA+offY,true);
+            if(touchData != undefined){
                 lastTouchData = touchData;
                 offX -= shiftX;
                 offY -= shiftY;
-            }
-            else {
+            } else {
                 offX += shiftX;
                 offY += shiftY;
             }
         }
-        touchData = this.touches(offXA + offX, offYA + offY, true);
-        if (touchData != undefined) {
+        touchData = this.touches(offXA+offX,offYA+offY,true);
+        if(touchData != undefined){
             lastTouchData = touchData;
             offX -= shiftX;
             offY -= shiftY;
         }
-        return { off: new PVector(offXA + offX, offYA + offY), data: lastTouchData };
-    };
+        return {off: new PVector(offXA+offX,offYA+offY), data: lastTouchData};
+    }
+    */
     Solid.prototype.containsPoint = function (angles) {
         var dirs = angles.map(function (a) { return a; }).sort(function (a, b) { return a - b; });
         var dif = 0;
@@ -391,28 +389,15 @@ var Solid = /** @class */ (function () {
         }
         return true;
     };
-    Solid.prototype.inSide = function (angles) {
-        var maxI = 0;
-        var max = 0;
-        var dif = 0;
-        for (var i = 0; i < angles.length; i++) {
-            dif = Main.angleDif(angles[(i + 1) % angles.length], angles[i]);
-            if (dif > max) {
-                maxI = i;
-                max = dif;
-            }
-        }
-        return maxI;
-    };
     return Solid;
 }());
 var Bound = /** @class */ (function () {
     function Bound() {
     }
-    Bound.ellipse = function (w, h, n) {
+    Bound.ellipse = function (w) {
         var bound = [];
-        for (var i = 0; i < Math.PI * 2 - Math.PI / n; i += Math.PI * 2 / n) {
-            bound.push(new PVector(Math.cos(i) * w / 2, Math.sin(i) * h / 2));
+        for (var i = 0; i < Math.PI * 2 - Math.PI / 6; i += Math.PI * 2 / 6) {
+            bound.push(new PVector(Math.cos(i) * w / 2, Math.sin(i) * w / 2));
         }
         return bound;
     };

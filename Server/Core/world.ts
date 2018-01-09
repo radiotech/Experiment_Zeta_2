@@ -3,7 +3,7 @@ class Dim {
     static w: number = 12;
     static h: number = 6;
 
-    blocks: Material[][];
+    blocks: Tile[][];
     solids: Solid[][][];
 
     constructor() {
@@ -13,7 +13,7 @@ class Dim {
         for(let i = 0; i < Dim.w; i++){
             this.blocks[i] = [];
             for(let j = 0; j < Dim.h; j++){
-                this.blocks[i][j] = Material.byID[Math.floor(Math.random()*1.01)];
+                this.blocks[i][j] = new Tile(i,j,Material.byID[0]);
             }
         }
 
@@ -77,10 +77,10 @@ class Dim {
     }
     
     set(x: number, y: number, m: Material){
-        this.blocks[x][y] = m;
+        this.blocks[x][y].m = m;
     }
     setLeft(x: number, y: number, m: Material){
-        this.blocks[this.getX(x)][this.getY(y)] = m;
+        this.blocks[this.getX(x)][this.getY(y)].m = m;
     }
     setRight(x: number, y: number, m: Material){
         this.setLeft(x+W, y, m);
@@ -99,6 +99,7 @@ class Dim {
         return Main.mod(y+off,Dim.h);
     }
 
+    /*
     blocksInRegion(x1: number, y1: number, x2: number, y2: number){
         let toReturn: ({p: PVector, b: Material[]})[] = [];
         
@@ -123,6 +124,7 @@ class Dim {
         }
         return toReturn;
     }
+    */
     tilesInRegion(x1: number, y1: number, x2: number, y2: number){
         let toReturn: Vector[] = [];
         for(let i = Math.floor(x1/W), __i = i, _i = Math.floor(x2/W)+1; i <= _i; i++){
@@ -142,27 +144,26 @@ class Dim {
 }
 
 class Tile {
-    static upBound: Vector[];
-    static upBoundParas: UnitVector[];
-    static upBoundOrths: UnitVector[];
-    static dnBound: Vector[];
-    static dnBoundParas: UnitVector[];
-    static dnBoundOrths: UnitVector[];
-
     static axisParas: UnitVector[];
     static axisOrths: UnitVector[];
 
+    i: number;
+    j: number;
+    m: Material;
+    name: string;
+    
     static setup(){
-        Tile.upBound = [new PVector(0,0), new PVector(W,H), new PVector(-W,H)];
-        Tile.upBoundParas = Bound.findParas(Tile.upBound);
-        Tile.upBoundOrths = Bound.findOrths(Tile.upBoundParas);
-        Tile.dnBound = [new PVector(W,0), new PVector(0,H), new PVector(-W,0)];
-        Tile.dnBoundParas = Bound.findParas(Tile.dnBound);
-        Tile.dnBoundOrths = Bound.findOrths(Tile.dnBoundParas);
-
-        Tile.axisParas = Tile.upBoundParas;
-        Tile.axisOrths = Tile.upBoundOrths;
+        Tile.axisParas = Bound.findParas([new PVector(W,H), new PVector(-W,H),new PVector(0,0)]);
+        Tile.axisOrths = Bound.findOrths(Tile.axisParas);
     }
+
+    constructor(i, j, m){
+        this.i = i;
+        this.j = j;
+        this.m = m;
+        this.name = `(${i},${j})`;
+    }
+
 }
 
 

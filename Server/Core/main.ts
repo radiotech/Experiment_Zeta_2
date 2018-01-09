@@ -31,7 +31,7 @@ class Main {
         Main.dim = new Dim();
         new View(Main.dim, new PVector(0,0), 15);
 
-        let solid = new Solid({dim: Main.dim, x: 2, y: 2.1, color: 0xbb00ff, bound: Bound.ellipse(1,1,6), width: 1, height: 1});
+        let solid = new Solid({dim: Main.dim, x: 2, y: 2.1, color: 0xbb00ff, bound: Bound.ellipse(1), width: 1, height: 1});
         
         Main.debugG = new PIXI.Graphics();
         Main.app.stage.addChild(Main.debugG);

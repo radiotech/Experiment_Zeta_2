@@ -5,7 +5,7 @@ var Dim = /** @class */ (function () {
         for (var i = 0; i < Dim.w; i++) {
             this.blocks[i] = [];
             for (var j = 0; j < Dim.h; j++) {
-                this.blocks[i][j] = Material.byID[Math.floor(Math.random() * 1.01)];
+                this.blocks[i][j] = new Tile(i, j, Material.byID[0]);
             }
         }
         this.solids = [];
@@ -63,10 +63,10 @@ var Dim = /** @class */ (function () {
         return this.getLeft(x + W, y);
     };
     Dim.prototype.set = function (x, y, m) {
-        this.blocks[x][y] = m;
+        this.blocks[x][y].m = m;
     };
     Dim.prototype.setLeft = function (x, y, m) {
-        this.blocks[this.getX(x)][this.getY(y)] = m;
+        this.blocks[this.getX(x)][this.getY(y)].m = m;
     };
     Dim.prototype.setRight = function (x, y, m) {
         this.setLeft(x + W, y, m);
@@ -83,29 +83,32 @@ var Dim = /** @class */ (function () {
     Dim.prototype.shiftY = function (y, off) {
         return Main.mod(y + off, Dim.h);
     };
-    Dim.prototype.blocksInRegion = function (x1, y1, x2, y2) {
-        var toReturn = [];
-        for (var i = (Math.ceil(x1 / W) + .00001) * W, _i = x2; i < _i; i += W) {
-            for (var j = (Math.ceil(y1 / H) + .00001) * H, _j = y2; j < _j; j += H) {
-                var tx = this.getX(i);
-                var ty = this.getY(j);
-                if (tx % 2 == ty % 2) {
+    /*
+    blocksInRegion(x1: number, y1: number, x2: number, y2: number){
+        let toReturn: ({p: PVector, b: Material[]})[] = [];
+        
+        for(let i = (Math.ceil(x1/W)+.00001)*W, _i = x2; i < _i; i+=W){
+            for(let j = (Math.ceil(y1/H)+.00001)*H, _j = y2; j < _j; j+=H){
+                let tx = this.getX(i);
+                let ty = this.getY(j);
+                if(tx%2 == ty%2){
                     toReturn.push({
-                        p: new PVector(i, j),
+                        p: new PVector(i,j),
                         b: [
                             this.blocks[tx][ty],
-                            this.blocks[this.shiftX(tx, -1)][ty],
-                            this.blocks[this.shiftX(tx, -1)][this.shiftY(ty, -1)],
-                            this.blocks[tx][this.shiftY(ty, -1)],
-                            this.blocks[this.shiftX(tx, 1)][this.shiftY(ty, -1)],
-                            this.blocks[this.shiftX(tx, 1)][ty]
+                            this.blocks[this.shiftX(tx,-1)][ty],
+                            this.blocks[this.shiftX(tx,-1)][this.shiftY(ty,-1)],
+                            this.blocks[tx][this.shiftY(ty,-1)],
+                            this.blocks[this.shiftX(tx,1)][this.shiftY(ty,-1)],
+                            this.blocks[this.shiftX(tx,1)][ty]
                         ]
                     });
                 }
             }
         }
         return toReturn;
-    };
+    }
+    */
     Dim.prototype.tilesInRegion = function (x1, y1, x2, y2) {
         var toReturn = [];
         for (var i = Math.floor(x1 / W), __i = i, _i = Math.floor(x2 / W) + 1; i <= _i; i++) {
@@ -135,17 +138,15 @@ var Dim = /** @class */ (function () {
     return Dim;
 }());
 var Tile = /** @class */ (function () {
-    function Tile() {
+    function Tile(i, j, m) {
+        this.i = i;
+        this.j = j;
+        this.m = m;
+        this.name = "(" + i + "," + j + ")";
     }
     Tile.setup = function () {
-        Tile.upBound = [new PVector(0, 0), new PVector(W, H), new PVector(-W, H)];
-        Tile.upBoundParas = Bound.findParas(Tile.upBound);
-        Tile.upBoundOrths = Bound.findOrths(Tile.upBoundParas);
-        Tile.dnBound = [new PVector(W, 0), new PVector(0, H), new PVector(-W, 0)];
-        Tile.dnBoundParas = Bound.findParas(Tile.dnBound);
-        Tile.dnBoundOrths = Bound.findOrths(Tile.dnBoundParas);
-        Tile.axisParas = Tile.upBoundParas;
-        Tile.axisOrths = Tile.upBoundOrths;
+        Tile.axisParas = Bound.findParas([new PVector(W, H), new PVector(-W, H), new PVector(0, 0)]);
+        Tile.axisOrths = Bound.findOrths(Tile.axisParas);
     };
     return Tile;
 }());

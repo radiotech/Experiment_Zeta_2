@@ -42,7 +42,7 @@ class Solid {
         this.c = args.color || 0xff0000;
         this.w = args.width || 1;
         this.h = args.height || 1;
-        this.bound = args.bound || Bound.ellipse(this.w, this.h, 6);
+        this.bound = args.bound || Bound.ellipse(this.w);
         this.deltaMove = args.deltaMove || this.bound.length>1?VecOp.dis(this.bound[0],this.bound[1]):this.w/10;
         this.deltaTouch = args.deltaTouch || this.deltaMove / 10;
         this.boundWidth = this.w/4;
@@ -131,7 +131,7 @@ class Solid {
                 
                 let bounce = 0;
                 move.tiles.forEach(t => {
-                    bounce += t.bounce;
+                    bounce += t.m.bounce;
                 });
                 bounce /= move.tiles.length;
                 movement = new PVector(Tile.axisParas[move.axis].x*para-Tile.axisOrths[move.axis].x*orth*bounce,Tile.axisParas[move.axis].y*para-Tile.axisOrths[move.axis].y*orth*bounce);
@@ -231,7 +231,7 @@ class Solid {
                 tilesAfter.forEach(t=>t.setXY(t.x*W,t.y*H+H/2));
                 tilesAfter = tilesAfter.map(t=>unRotate(t,xAxis,yAxis));
                 let matsAfter = tilesAfter.map(t=>this.dim.getAt(t.x,t.y));
-                if(matsAfter.some(t=>t.solid)){ //some tiles in after are solid
+                if(matsAfter.some(t=>t.m.solid)){ //some tiles in after are solid
                     let tilesBefore = this.dim.tilesInRegion(
                         rotPos.x+rotOffset.x*(toHit-.001)-this.boundWidth,
                         rotPos.y+rotOffset.y*(toHit-.001)-this.boundHeight,
@@ -240,11 +240,11 @@ class Solid {
                     );
                     tilesBefore.forEach(t=>t.setXY(t.x*W,t.y*H+H/2));
                     tilesBefore = tilesBefore.map(t=>unRotate(t,xAxis,yAxis));
-                    if(tilesBefore.every(t=>!this.dim.getAt(t.x,t.y).solid)){ //every tile in before are is not solid
+                    if(tilesBefore.every(t=>!this.dim.getAt(t.x,t.y).m.solid)){ //every tile in before are is not solid
                         let hitTiles = tilesAfter.map(t=>this.dim.getAt(t.x,t.y));
                         let remainder = PVector.clone(offset);
                         VecOp.mult(remainder,(1-(toHit-.001)));
-                        return {hit:true, dis:toHit-.001, tiles:matsAfter.filter(t=>t.solid), axis:axis, remainder:remainder};
+                        return {hit:true, dis:toHit-.001, tiles:matsAfter.filter(t=>t.m.solid), axis:axis, remainder:remainder};
                     }
                 }
                 //tilesAfter.forEach(t=>this.dim.setAt(t.x,t.y,Material.byID[4]));
@@ -269,6 +269,7 @@ class Solid {
         this.p.addY(offset.y*move.dis);
         return move;
     }
+    /*
     moveByOLD(offset: Vector){
         if(offset.getX() == 0 && offset.getY() == 0){ //no movement
             return undefined;
@@ -292,6 +293,8 @@ class Solid {
         VecOp.add(this.p,offset);
         return undefined;
     }
+    */
+    /*
     touches(offX = 0, offY = 0, reportSide = false){
         //checks if this object collides with blocks with a given offset from current pos
         let posX = this.p.getX()+offX;
@@ -387,6 +390,8 @@ class Solid {
         }
         return reportSide?undefined:false;
     }
+    */
+    /*
     touch(offXA: number, offYA: number, offXB: number, offYB: number){
         //given point A, known not touching, and point b, known touching, returns a point c, <= deltaTouch from touching
         let touchData = undefined;
@@ -420,6 +425,7 @@ class Solid {
         }
         return {off: new PVector(offXA+offX,offYA+offY), data: lastTouchData};
     }
+    */
     containsPoint(angles: number[]){
         let dirs = angles.map(a=>a).sort((a,b)=>a-b);
         let dif = 0;
@@ -435,6 +441,7 @@ class Solid {
         }
         return true;
     }
+    /*
     inSide(angles: number[]){
         let maxI = 0;
         let max = 0;
@@ -448,13 +455,14 @@ class Solid {
         }
         return maxI;
     }
+    */
 }
 
 class Bound {
-    static ellipse(w: number, h: number, n: number){
+    static ellipse(w: number){
         let bound: Vector[] = [];
-        for(let i = 0; i < Math.PI*2-Math.PI/n; i+=Math.PI*2/n){
-            bound.push(new PVector(Math.cos(i)*w/2,Math.sin(i)*h/2));
+        for(let i = 0; i < Math.PI*2-Math.PI/6; i+=Math.PI*2/6){
+            bound.push(new PVector(Math.cos(i)*w/2,Math.sin(i)*w/2));
         }
         return bound;
     }
