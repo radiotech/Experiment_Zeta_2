@@ -14,6 +14,8 @@ var Main = /** @class */ (function () {
         $(document).on("mousedown", UI.mbDown);
         $(document).on("mouseup", UI.mbUp);
         Main.im = Main.app.renderer.plugins.interaction;
+        PVector.setup();
+        Damper.setup();
         View.setup();
         Material.setup();
         Solid.setup();
@@ -44,6 +46,9 @@ var Main = /** @class */ (function () {
     };
     Main.angleDif = function (a, b) {
         return Math.abs(Main.mod((b - a) + Math.PI, Main.TWO_PI) - Math.PI);
+    };
+    Main.sign = function (x) {
+        return x < 0 ? -1 : 1;
     };
     return Main;
 }());

@@ -26,41 +26,45 @@ var Solid = /** @class */ (function () {
             console.error("object created with small touch distance of " + this.deltaTouch + "!");
             this.deltaTouch = 0.0001;
         }
+        /*
         //calculate bounding boxes and circles
         this.innerRadius = Number.POSITIVE_INFINITY;
         this.outerRadius = 0;
         this.innerBox = new PVector(Number.POSITIVE_INFINITY, Number.POSITIVE_INFINITY);
-        this.outerBox = new PVector(0, 0);
-        for (var i = 0; i < this.bound.length; i++) {
-            var a = this.bound[i];
-            var b = this.bound[Main.mod(i + 1, this.bound.length)];
-            var c = new PVector(b.getX() - a.getX(), b.getY() - a.getY());
-            for (var j = 0, dj = 1 / (Math.ceil(VecOp.dis(a, b) / this.deltaTouch) + .5); j < 1; j += dj) {
-                var d = new PVector(a.getX() + c.getX() * j, a.getY() + c.getY() * j);
-                if (d.getMag() < this.innerRadius) {
+        this.outerBox = new PVector(0,0);
+        for(let i = 0; i < this.bound.length; i++){
+            let a = this.bound[i];
+            let b = this.bound[Main.mod(i+1,this.bound.length)];
+            let c = new PVector(b.getX()-a.getX(), b.getY()-a.getY());
+            for(let j = 0, dj = 1/(Math.ceil(VecOp.dis(a,b)/this.deltaTouch)+.5); j < 1; j+=dj){
+                let d = new PVector(a.getX()+c.getX()*j, a.getY()+c.getY()*j);
+                if(d.getMag() < this.innerRadius){
                     this.innerRadius = d.getMag();
                 }
-                if (Math.abs(d.getX()) < this.innerBox.getX() && Math.abs(d.getY()) < this.innerBox.getY()) {
+                if(Math.abs(d.getX()) < this.innerBox.getX() && Math.abs(d.getY()) < this.innerBox.getY()){
                     this.innerBox.setX(Math.max(Math.abs(d.getX()), Math.abs(d.getY())));
                     this.innerBox.setY(this.innerBox.getX());
                 }
             }
-            if (a.getMag() > this.outerRadius) {
+            if(a.getMag() > this.outerRadius){
                 this.outerRadius = a.getMag();
             }
-            if (Math.abs(a.getX()) > this.outerBox.getX()) {
+            if(Math.abs(a.getX()) > this.outerBox.getX()){
                 this.outerBox.setX(Math.abs(a.getX()));
             }
-            if (Math.abs(a.getY()) > this.outerBox.getY()) {
+            if(Math.abs(a.getY()) > this.outerBox.getY()){
                 this.outerBox.setY(Math.abs(a.getY()));
             }
         }
-        VecOp.mult(this.innerBox, 2);
-        VecOp.mult(this.outerBox, 2);
+        VecOp.mult(this.innerBox,2);
+        VecOp.mult(this.outerBox,2);
+
         this.boundParas = Bound.findParas(this.bound);
         this.boundOrths = Bound.findOrths(this.boundParas);
+        
         console.log(this.boundParas);
         console.log(this.bound);
+        */
         UI.downs.add('key_i', new NamedFunction('move', function () { return _this.a.addY(-.0005); }));
         UI.downs.add('key_j', new NamedFunction('move', function () { return _this.a.addX(-.0005); }));
         UI.downs.add('key_k', new NamedFunction('move', function () { return _this.a.addY(.0005); }));
@@ -88,6 +92,7 @@ var Solid = /** @class */ (function () {
         VecOp.add(this.v, this.a);
         var movement = this.v;
         var moves = 6;
+        this.touches().forEach(function (t) { return t.m = Material.byName['red']; });
         var _loop_1 = function () {
             var move = this_1.moveBy(movement);
             if (move.hit == false) {
@@ -97,12 +102,12 @@ var Solid = /** @class */ (function () {
                 movement = move.remainder;
                 var para = VecOp.dot(movement, Tile.axisParas[move.axis]);
                 var orth = VecOp.dot(movement, Tile.axisOrths[move.axis]);
-                var bounce_1 = 0;
+                var bounce_1 = Damper.none;
                 move.tiles.forEach(function (t) {
-                    bounce_1 += t.m.bounce;
+                    bounce_1 = bounce_1.add(t.m.bounce);
                 });
-                bounce_1 /= move.tiles.length;
-                movement = new PVector(Tile.axisParas[move.axis].x * para - Tile.axisOrths[move.axis].x * orth * bounce_1, Tile.axisParas[move.axis].y * para - Tile.axisOrths[move.axis].y * orth * bounce_1);
+                orth = bounce_1.apply(orth);
+                movement = new PVector(Tile.axisParas[move.axis].x * para - Tile.axisOrths[move.axis].x * orth, Tile.axisParas[move.axis].y * para - Tile.axisOrths[move.axis].y * orth);
                 /*
                 Main.debugG.clear();
                 Main.debugG.lineStyle(10,0x0000ff);
@@ -215,6 +220,35 @@ var Solid = /** @class */ (function () {
         this.p.addX(offset.x * move.dis);
         this.p.addY(offset.y * move.dis);
         return move;
+    };
+    Solid.prototype.touches = function (offset) {
+        var _this = this;
+        if (offset === void 0) { offset = PVector.zero; }
+        var rotate = function (v, para, orth) {
+            return new PVector(para.x * v.x + orth.x * v.y, para.y * v.x + orth.y * v.y);
+        };
+        var unRotate = function (v, para, orth) {
+            return new PVector(VecOp.dot(v, para), VecOp.dot(v, orth));
+        };
+        var forAxis = function (axis) {
+            //find dis to cross boundry
+            var xAxis = Tile.axisParas[axis];
+            var yAxis = Tile.axisOrths[axis];
+            var rotPosNew = rotate(new PVector(_this.p.x + offset.x, _this.p.y + offset.y), xAxis, yAxis);
+            var tiles = _this.dim.tilesInRegion(rotPosNew.x - _this.boundWidth, rotPosNew.y - _this.boundHeight, rotPosNew.x + _this.boundWidth, rotPosNew.y + _this.boundHeight);
+            tiles.forEach(function (t) { return t.setXY(t.x * W, t.y * H + H / 2); });
+            tiles = tiles.map(function (t) { return unRotate(t, xAxis, yAxis); });
+            return tiles.map(function (t) { return _this.dim.getAt(t.x, t.y); });
+        };
+        var tiles = [];
+        var tileHash = {};
+        forAxis(0).forEach(function (t) { return tileHash[t.name] = t; });
+        forAxis(1).forEach(function (t) { return tileHash[t.name] = t; });
+        forAxis(2).forEach(function (t) { return tileHash[t.name] = t; });
+        for (var t in tileHash) {
+            tiles.push(tileHash[t]);
+        }
+        return tiles;
     };
     /*
     moveByOLD(offset: Vector){

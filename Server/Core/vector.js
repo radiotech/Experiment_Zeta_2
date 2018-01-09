@@ -116,6 +116,9 @@ var PVector = /** @class */ (function () {
         this.setXY(x, y);
         this.mag = undefined;
     }
+    PVector.setup = function () {
+        PVector.zero = new ZeroVector();
+    };
     //basic get/set
     PVector.prototype.getMag = function () {
         if (this.mag == undefined) {
@@ -158,9 +161,6 @@ var PVector = /** @class */ (function () {
     };
     PVector.clone = function (v) {
         return new PVector(v.x, v.y);
-    };
-    PVector.zero = function () {
-        return new PVector(0, 0);
     };
     return PVector;
 }());
@@ -212,4 +212,34 @@ var UnitVector = /** @class */ (function (_super) {
         return new UnitVector(v.x, v.y);
     };
     return UnitVector;
+}(PVector));
+var ZeroVector = /** @class */ (function (_super) {
+    __extends(ZeroVector, _super);
+    function ZeroVector() {
+        return _super.call(this, 0, 0) || this;
+    }
+    ZeroVector.prototype.getMag = function () {
+        return 0;
+    };
+    ZeroVector.prototype.setX = function (x) {
+        console.log("Called setX on a zero vector!");
+        _super.prototype.setX.call(this, 0);
+    };
+    ZeroVector.prototype.setY = function (y) {
+        console.log("Called setY on a zero vector!");
+        _super.prototype.setY.call(this, 0);
+    };
+    ZeroVector.prototype.addX = function (x) {
+        console.log("Called addX on a zero vector!");
+        _super.prototype.addX.call(this, 0);
+    };
+    ZeroVector.prototype.addY = function (y) {
+        console.log("Called addY on a zero vector!");
+        _super.prototype.addY.call(this, 0);
+    };
+    ZeroVector.prototype.setXY = function (x, y) {
+        console.log("Called setXY on a zero vector!");
+        _super.prototype.setXY.call(this, 0, 0);
+    };
+    return ZeroVector;
 }(PVector));

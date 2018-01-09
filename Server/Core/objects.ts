@@ -17,15 +17,10 @@ class Solid {
     _p: Vector;
     v: Vector;
     a: Vector;
-    innerRadius: number;
-    outerRadius: number;
-    innerBox: Vector;
-    outerBox: Vector;
-    boundParas: UnitVector[];
-    boundOrths: UnitVector[];
-    
     boundHeight: number;
     boundWidth: number;
+    tile: Tile;
+    tiles: Tile[];
 
     static setup(){
         Solid.solids = [];
@@ -60,6 +55,7 @@ class Solid {
         }
 
 
+        /*
         //calculate bounding boxes and circles
         this.innerRadius = Number.POSITIVE_INFINITY;
         this.outerRadius = 0;
@@ -97,7 +93,7 @@ class Solid {
         
         console.log(this.boundParas);
         console.log(this.bound);
-
+        */
 
         UI.downs.add('key_i', new NamedFunction('move', ()=>this.a.addY(-.0005)));
         UI.downs.add('key_j', new NamedFunction('move', ()=>this.a.addX(-.0005)));
@@ -119,6 +115,8 @@ class Solid {
         let movement = this.v;
         let moves = 6;
 
+        this.touches().forEach(t=>t.m = Material.byName['red']);
+
         while(moves > 0){
             let move = this.moveBy(movement);
 
@@ -129,12 +127,12 @@ class Solid {
                 let para = VecOp.dot(movement,Tile.axisParas[move.axis]);
                 let orth = VecOp.dot(movement,Tile.axisOrths[move.axis]);
                 
-                let bounce = 0;
+                let bounce: Damper = Damper.none;
                 move.tiles.forEach(t => {
-                    bounce += t.m.bounce;
+                    bounce = bounce.add(t.m.bounce);
                 });
-                bounce /= move.tiles.length;
-                movement = new PVector(Tile.axisParas[move.axis].x*para-Tile.axisOrths[move.axis].x*orth*bounce,Tile.axisParas[move.axis].y*para-Tile.axisOrths[move.axis].y*orth*bounce);
+                orth = bounce.apply(orth);
+                movement = new PVector(Tile.axisParas[move.axis].x*para-Tile.axisOrths[move.axis].x*orth,Tile.axisParas[move.axis].y*para-Tile.axisOrths[move.axis].y*orth);
 
 
                 /*
@@ -268,6 +266,42 @@ class Solid {
         this.p.addX(offset.x*move.dis);
         this.p.addY(offset.y*move.dis);
         return move;
+    }
+
+    touches(offset: Vector = PVector.zero){
+        let rotate = (v: Vector, para: UnitVector, orth: UnitVector)=>{
+            return new PVector(para.x*v.x+orth.x*v.y,para.y*v.x+orth.y*v.y);
+        }
+        let unRotate = (v: Vector, para: UnitVector, orth: UnitVector)=>{
+            return new PVector(VecOp.dot(v,para),VecOp.dot(v,orth));
+        }
+        
+        let forAxis = (axis: number)=>{
+            //find dis to cross boundry
+            let xAxis = Tile.axisParas[axis];
+            let yAxis = Tile.axisOrths[axis];
+            let rotPosNew = rotate(new PVector(this.p.x+offset.x,this.p.y+offset.y),xAxis,yAxis);
+            
+            let tiles = this.dim.tilesInRegion(
+                rotPosNew.x-this.boundWidth,
+                rotPosNew.y-this.boundHeight,
+                rotPosNew.x+this.boundWidth,
+                rotPosNew.y+this.boundHeight
+            );
+            tiles.forEach(t=>t.setXY(t.x*W,t.y*H+H/2));
+            tiles = tiles.map(t=>unRotate(t,xAxis,yAxis));
+            return tiles.map(t=>this.dim.getAt(t.x,t.y));
+        }
+        
+        let tiles: Tile[] = [];
+        let tileHash = {};
+        forAxis(0).forEach(t=>tileHash[t.name]=t);
+        forAxis(1).forEach(t=>tileHash[t.name]=t);
+        forAxis(2).forEach(t=>tileHash[t.name]=t);
+        for(let t in tileHash){
+            tiles.push(tileHash[t]);
+        }
+        return tiles;
     }
     /*
     moveByOLD(offset: Vector){

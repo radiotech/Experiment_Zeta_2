@@ -6,35 +6,73 @@ class Material {
     color: number;
     solid: boolean;
     mass: number;
-    bounce: number;
+    drag: Damper;
+    friction: Damper;
+    bounce: Damper;
+
+
     id: number;
+    
 
     public static setup(){
         this.byName = {};
         this.byID = [];
 
         new Material({name:'air',color:0xccccff,solid:false});
-        new Material({name:'iron',color:0x222244,solid:true});
-        new Material({name:'red',color:0xff2222});
-        new Material({name:'green',color:0x22ff22,bounce:1});
+        new Material({name:'iron',color:0x222244});
+        new Material({name:'red',color:0xff2222,solid:false});
+        new Material({name:'green',color:0x22ff22,bounce:new Damper(1,0)});
         new Material({name:'blue',color:0x000000});
     }
-    constructor(data: any) {
+    constructor(data:{name?: string, color?:number, solid?:boolean, mass?:number, drag?:Damper, friction?:Damper, bounce?:Damper}) {
         this.name = data.name || ('Material_'+Material.byID.length);
         this.color = data.color!=undefined?data.color:0xff0000;
         this.solid = data.solid!=undefined?data.solid:true;
         this.mass = data.mass!=undefined?data.mass:10;
-        this.bounce = data.bounce!=undefined?data.bounce:0;
+        this.drag = data.drag || (this.solid?new Damper(.5,.001):new Damper(.99,.0001));
+        this.friction = data.friction || new Damper(1,0);
+        this.bounce = data.bounce || new Damper(0,0);
 
         if(data.name == undefined){
             console.error('Material created with no name!');
         }
         this.id = Material.byID.length;
-        Material.byName[name] = this;
+        Material.byName[this.name] = this;
         Material.byID[this.id] = this;
     }
 }
 
+class Damper {
+    static none: Damper;
+    private m: number;
+    private b: number;
+    private num: number;
+
+    static setup(){
+        Damper.none = new Damper(1,0,0);
+    }
+    constructor(m: number, b: number, num = 1){
+        if(num > 0){
+            this.m = m/num;
+            this.b = b/num;
+        } else {
+            this.m = m;
+            this.b = b;
+        }
+        this.num = num;
+    }
+    add(other: Damper){
+        return new Damper(this.m*this.num+other.m*other.num,this.b*this.num+other.b*other.num,this.num+other.num);
+    }
+    apply(value: number){
+        let sign = Main.sign(value);
+        let newVal = value-sign*this.b;
+        if(Main.sign(newVal) != sign){
+            return 0;
+        }
+        return newVal*this.m;
+    }
+}
 
 /*
 

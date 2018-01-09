@@ -120,6 +120,7 @@ class VecOp {
 }
 
 class PVector implements Vector {
+    static zero;
     protected _x: number;
     protected _y: number;
     protected mag: number;
@@ -128,6 +129,10 @@ class PVector implements Vector {
     constructor(x=0, y=0){
         this.setXY(x,y);
         this.mag = undefined;
+    }
+
+    static setup(){
+        PVector.zero = new ZeroVector();
     }
 
     //basic get/set
@@ -175,9 +180,6 @@ class PVector implements Vector {
     public static clone(v: Vector){
         return new PVector(v.x,v.y);
     }
-    public static zero(){
-        return new PVector(0,0);
-    }
 }
 
 class UnitVector extends PVector {
@@ -224,5 +226,35 @@ class UnitVector extends PVector {
 
     public static clone(v: Vector){
         return new UnitVector(v.x,v.y);
+    }
+}
+
+class ZeroVector extends PVector {
+    constructor(){
+        super(0,0);
+    }
+
+    public getMag(){
+        return 0;
+    }
+    public setX(x: number){
+        console.log("Called setX on a zero vector!");
+        super.setX(0);
+    }
+    public setY(y: number){
+        console.log("Called setY on a zero vector!");
+        super.setY(0);
+    }
+    public addX(x: number){
+        console.log("Called addX on a zero vector!");
+        super.addX(0);
+    }
+    public addY(y: number){
+        console.log("Called addY on a zero vector!");
+        super.addY(0);
+    }
+    public setXY(x: number, y: number){
+        console.log("Called setXY on a zero vector!");
+        super.setXY(0,0);
     }
 }

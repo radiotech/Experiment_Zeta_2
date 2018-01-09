@@ -23,6 +23,8 @@ class Main {
         Main.im = Main.app.renderer.plugins.interaction;
         
         
+        PVector.setup();
+        Damper.setup();
         View.setup();
         Material.setup();
         Solid.setup();
@@ -66,6 +68,9 @@ class Main {
     }
     public static angleDif(a: number, b: number){
         return Math.abs(Main.mod((b-a)+Math.PI,Main.TWO_PI)-Math.PI);
+    }
+    static sign(x: number){
+        return x<0?-1:1;
     }
 }
 
