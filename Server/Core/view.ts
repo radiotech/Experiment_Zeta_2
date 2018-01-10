@@ -79,7 +79,8 @@ class View {
             for(let j = -H, _j = gridH+2.1*H; j < _j; j+=H){
                 let iOff = i-gridOffX;
                 let jOff = j-gridOffY;
-                this.blockG.beginFill(this.dim.getLeft(gridX+i,gridY+j).m.color);
+                let tile = this.dim.getLeft(gridX+i,gridY+j);
+                this.blockG.beginFill(tile.m.color);
                 if(this.dim.isUp(gridX+i,gridY+j)){
                     this.blockG.drawPolygon([iOff*screenW,jOff*screenH, (iOff+W)*screenW,(jOff+H)*screenH, (iOff-W)*screenW,(jOff+H)*screenH]);
                 } else {
@@ -87,10 +88,9 @@ class View {
                 }
                 this.blockG.endFill();
 
-                let solids = this.dim.solidsAt(gridX+i,gridY+j);
-                for(let k = 0; k < solids.length; k++){
-                    this.solidG.beginFill(solids[k].c);
-                    solids[k].draw(this.solidG,(iOff+Main.mod(solids[k].p.getX(),W))*screenW,(jOff+Main.mod(solids[k].p.getY(),H))*screenH,screenW,screenH);
+                for(let k = 0; k < tile.solids.length; k++){
+                    this.solidG.beginFill(tile.solids[k].c);
+                    tile.solids[k].draw(this.solidG,(iOff+Main.mod(tile.solids[k].p.getX(),W))*screenW,(jOff+Main.mod(tile.solids[k].p.getY(),H))*screenH,screenW,screenH);
                     this.solidG.endFill();
                 }
                 

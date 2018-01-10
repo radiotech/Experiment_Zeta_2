@@ -17,6 +17,9 @@ var VecOp = /** @class */ (function () {
     };
     VecOp.setMag = function (v, magNew) {
         var mag = v.getMag();
+        if (mag < .00001) {
+            return;
+        }
         v.setXY(v.getX() / mag * magNew, v.getY() / mag * magNew);
     };
     VecOp.orthogonal = function (v) {
@@ -238,7 +241,10 @@ var ZeroVector = /** @class */ (function (_super) {
         _super.prototype.addY.call(this, 0);
     };
     ZeroVector.prototype.setXY = function (x, y) {
-        console.log("Called setXY on a zero vector!");
+        if (x != 0 || y != 0) {
+            console.log("Called setXY on a zero vector!");
+            console.trace();
+        }
         _super.prototype.setXY.call(this, 0, 0);
     };
     return ZeroVector;

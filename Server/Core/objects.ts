@@ -42,6 +42,8 @@ class Solid {
         this.deltaTouch = args.deltaTouch || this.deltaMove / 10;
         this.boundWidth = this.w/4;
         this.boundHeight = this.w/4/W;
+        this.tile = undefined;
+        this.tiles = [];
         if(this.dim == undefined){
             console.error(`object created no dimension!`);
         }
@@ -95,15 +97,18 @@ class Solid {
         console.log(this.bound);
         */
 
-        UI.downs.add('key_i', new NamedFunction('move', ()=>this.a.addY(-.0005)));
-        UI.downs.add('key_j', new NamedFunction('move', ()=>this.a.addX(-.0005)));
-        UI.downs.add('key_k', new NamedFunction('move', ()=>this.a.addY(.0005)));
-        UI.downs.add('key_l', new NamedFunction('move', ()=>this.a.addX(.0005)));
+        let speed = .004;
+        UI.downs.add('key_i', new NamedFunction('move', ()=>this.a.addY(-speed)));
+        UI.downs.add('key_j', new NamedFunction('move', ()=>this.a.addX(-speed)));
+        UI.downs.add('key_k', new NamedFunction('move', ()=>this.a.addY(speed)));
+        UI.downs.add('key_l', new NamedFunction('move', ()=>this.a.addX(speed)));
 
         UI.ups.add('key_i', new NamedFunction('move', ()=>{if(this.a.getY()<0){this.a.setY(0)}}));
         UI.ups.add('key_j', new NamedFunction('move', ()=>{if(this.a.getX()<0){this.a.setX(0)}}));
         UI.ups.add('key_k', new NamedFunction('move', ()=>{if(this.a.getY()>0){this.a.setY(0)}}));
         UI.ups.add('key_l', new NamedFunction('move', ()=>{if(this.a.getX()>0){this.a.setX(0)}}));
+
+        UI.downs.add('key_e', new NamedFunction('export', ()=>console.log(JSON.stringify(this.dim.export()))));
 
         this.id = Math.floor(Math.random() * Number.MAX_VALUE);
         Solid.solids.push(this);
@@ -112,28 +117,37 @@ class Solid {
         VecOp.match(this._p,this.p);
         VecOp.add(this.v,this.a);
         
+        this.tiles.forEach(t=>t.m = Material.byName['red']);
+        let drag = Damper.none;
+        this.tiles.forEach(t => {
+            drag = drag.add(t.m.drag);
+        });
+        VecOp.setMag(this.v,drag.apply(this.v.getMag()));
+        
         let movement = this.v;
         let moves = 6;
-
-        this.touches().forEach(t=>t.m = Material.byName['red']);
-
         while(moves > 0){
             let move = this.moveBy(movement);
 
             if(move.hit == false){
                 moves = 0;
             } else {
-                movement = move.remainder;
-                let para = VecOp.dot(movement,Tile.axisParas[move.axis]);
-                let orth = VecOp.dot(movement,Tile.axisOrths[move.axis]);
                 
-                let bounce: Damper = Damper.none;
+                let friction = Damper.none;
+                let bounce = Damper.none;
                 move.tiles.forEach(t => {
+                    friction = friction.add(t.m.friction);
                     bounce = bounce.add(t.m.bounce);
                 });
-                orth = bounce.apply(orth);
-                movement = new PVector(Tile.axisParas[move.axis].x*para-Tile.axisOrths[move.axis].x*orth,Tile.axisParas[move.axis].y*para-Tile.axisOrths[move.axis].y*orth);
 
+                movement = move.remainder;
+                let para = friction.apply(VecOp.dot(movement,Tile.axisParas[move.axis]));
+                let orth = bounce.apply(VecOp.dot(movement,Tile.axisOrths[move.axis]));
+                movement = new PVector(Tile.axisParas[move.axis].x*para-Tile.axisOrths[move.axis].x*orth,Tile.axisParas[move.axis].y*para-Tile.axisOrths[move.axis].y*orth);
+                
+                para = friction.apply(VecOp.dot(this.v,Tile.axisParas[move.axis]));
+                orth = bounce.apply(VecOp.dot(this.v,Tile.axisOrths[move.axis]));
+                this.v = new PVector(Tile.axisParas[move.axis].x*para-Tile.axisOrths[move.axis].x*orth,Tile.axisParas[move.axis].y*para-Tile.axisOrths[move.axis].y*orth);;
 
                 /*
                 Main.debugG.clear();
@@ -155,13 +169,7 @@ class Solid {
                 */
 
                 //VecOp.mult(movement,-1)
-                let tempV = PVector.clone(movement);
-                VecOp.setMag(tempV,this.v.getMag());
-                this.v = tempV;
                 
-                
-
-
                 moves--;
                 if(moves == 0){
                     console.log('An object ran out of bounces! It may be stuck..');
@@ -170,8 +178,12 @@ class Solid {
             }
         }
         
-        this.dim.unregisterSolid(this._p.getX(), this._p.getY(), this);
-        this.dim.registerSolid(this.p.getX(), this.p.getY(), this);
+        if(this.tile!=undefined){
+            this.tile.unregisterSolid(this)
+        };
+        this.tile = this.dim.getLeft(this.p.x,this.p.y);
+        this.tiles = this.touches();
+        this.tile.registerSolid(this);
     }
     draw(g: PIXI.Graphics, x: number, y: number, w: number, h: number){
 

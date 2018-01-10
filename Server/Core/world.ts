@@ -1,10 +1,9 @@
 class Dim {
     static dimensions: Dim[] = [];
-    static w: number = 12;
-    static h: number = 6;
+    static w: number = 48;
+    static h: number = 24;
 
     blocks: Tile[][];
-    solids: Solid[][][];
 
     constructor() {
         Dim.dimensions.push(this);
@@ -16,25 +15,6 @@ class Dim {
                 this.blocks[i][j] = new Tile(i,j,Material.byID[0]);
             }
         }
-
-        this.solids = [];
-        for(let i = 0; i < Dim.w; i++){
-            this.solids[i] = [];
-            for(let j = 0; j < Dim.h; j++){
-                this.solids[i][j] = [];
-            }
-        }
-
-    }
-
-    registerSolid(x: number, y: number, s: Solid){
-        this.solids[this.getX(x)][this.getY(y)].push(s);
-    }
-    unregisterSolid(x: number, y: number, s: Solid){
-        this.solids[this.getX(x)][this.getY(y)] = this.solids[this.getX(x)][this.getY(y)].filter(_s => s.id != s.id);
-    }
-    solidsAt(x: number, y: number){
-        return this.solids[this.getX(x)][this.getY(y)];
     }
 
     isUp(x: number, y: number){
@@ -140,6 +120,24 @@ class Dim {
         }
         return toReturn;
     }
+
+    export(){
+        let result: string[][] = [];
+        for(let i = 0; i < Dim.w; i++){
+            result[i] = [];
+            for(let j = 0; j < Dim.h; j++){
+                result[i][j] = this.blocks[i][j].export();
+            }
+        }
+        return result;
+    }
+    import(data){
+        for(let i = 0; i < Dim.w; i++){
+            for(let j = 0; j < Dim.h; j++){
+                this.blocks[i][j].import(data[i][j]);
+            }
+        }
+    }
     
 }
 
@@ -151,6 +149,7 @@ class Tile {
     j: number;
     m: Material;
     name: string;
+    solids: Solid[];
     
     static setup(){
         Tile.axisParas = Bound.findParas([new PVector(W,H), new PVector(-W,H),new PVector(0,0)]);
@@ -162,8 +161,21 @@ class Tile {
         this.j = j;
         this.m = m;
         this.name = `(${i},${j})`;
+        this.solids = [];
     }
 
+    registerSolid(s: Solid){
+        this.solids.push(s);
+    }
+    unregisterSolid(s: Solid){
+        this.solids = this.solids.filter(_s => _s.id != s.id);
+    }
+    export(){
+        return this.m.name;
+    }
+    import(data){
+        this.m = Material.byName[data];
+    }
 }
 
 

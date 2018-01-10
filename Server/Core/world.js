@@ -8,23 +8,7 @@ var Dim = /** @class */ (function () {
                 this.blocks[i][j] = new Tile(i, j, Material.byID[0]);
             }
         }
-        this.solids = [];
-        for (var i = 0; i < Dim.w; i++) {
-            this.solids[i] = [];
-            for (var j = 0; j < Dim.h; j++) {
-                this.solids[i][j] = [];
-            }
-        }
     }
-    Dim.prototype.registerSolid = function (x, y, s) {
-        this.solids[this.getX(x)][this.getY(y)].push(s);
-    };
-    Dim.prototype.unregisterSolid = function (x, y, s) {
-        this.solids[this.getX(x)][this.getY(y)] = this.solids[this.getX(x)][this.getY(y)].filter(function (_s) { return s.id != s.id; });
-    };
-    Dim.prototype.solidsAt = function (x, y) {
-        return this.solids[this.getX(x)][this.getY(y)];
-    };
     Dim.prototype.isUp = function (x, y) {
         return (this.getX(x) % 2 == this.getY(y) % 2);
     };
@@ -132,9 +116,26 @@ var Dim = /** @class */ (function () {
         }
         return toReturn;
     };
+    Dim.prototype["export"] = function () {
+        var result = [];
+        for (var i = 0; i < Dim.w; i++) {
+            result[i] = [];
+            for (var j = 0; j < Dim.h; j++) {
+                result[i][j] = this.blocks[i][j]["export"]();
+            }
+        }
+        return result;
+    };
+    Dim.prototype["import"] = function (data) {
+        for (var i = 0; i < Dim.w; i++) {
+            for (var j = 0; j < Dim.h; j++) {
+                this.blocks[i][j]["import"](data[i][j]);
+            }
+        }
+    };
     Dim.dimensions = [];
-    Dim.w = 12;
-    Dim.h = 6;
+    Dim.w = 48;
+    Dim.h = 24;
     return Dim;
 }());
 var Tile = /** @class */ (function () {
@@ -143,10 +144,23 @@ var Tile = /** @class */ (function () {
         this.j = j;
         this.m = m;
         this.name = "(" + i + "," + j + ")";
+        this.solids = [];
     }
     Tile.setup = function () {
         Tile.axisParas = Bound.findParas([new PVector(W, H), new PVector(-W, H), new PVector(0, 0)]);
         Tile.axisOrths = Bound.findOrths(Tile.axisParas);
+    };
+    Tile.prototype.registerSolid = function (s) {
+        this.solids.push(s);
+    };
+    Tile.prototype.unregisterSolid = function (s) {
+        this.solids = this.solids.filter(function (_s) { return _s.id != s.id; });
+    };
+    Tile.prototype["export"] = function () {
+        return this.m.name;
+    };
+    Tile.prototype["import"] = function (data) {
+        this.m = Material.byName[data];
     };
     return Tile;
 }());

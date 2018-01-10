@@ -4,8 +4,8 @@ var Material = /** @class */ (function () {
         this.color = data.color != undefined ? data.color : 0xff0000;
         this.solid = data.solid != undefined ? data.solid : true;
         this.mass = data.mass != undefined ? data.mass : 10;
-        this.drag = data.drag || (this.solid ? new Damper(.5, .001) : new Damper(.99, .0001));
-        this.friction = data.friction || new Damper(1, 0);
+        this.drag = data.drag || (this.solid ? new Damper(.98, .002) : new Damper(.995, 0));
+        this.friction = data.friction || new Damper(.98, .002);
         this.bounce = data.bounce || new Damper(0, 0);
         if (data.name == undefined) {
             console.error('Material created with no name!');
@@ -20,7 +20,7 @@ var Material = /** @class */ (function () {
         new Material({ name: 'air', color: 0xccccff, solid: false });
         new Material({ name: 'iron', color: 0x222244 });
         new Material({ name: 'red', color: 0xff2222, solid: false });
-        new Material({ name: 'green', color: 0x22ff22, bounce: new Damper(1, 0) });
+        new Material({ name: 'green', color: 0x22ff22, bounce: new Damper(.98, .01) });
         new Material({ name: 'blue', color: 0x000000 });
     };
     return Material;

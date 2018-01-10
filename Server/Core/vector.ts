@@ -23,6 +23,9 @@ class VecOp {
     }
     public static setMag(v: Vector, magNew: number){
         let mag = v.getMag();
+        if(mag < .00001){
+            return;
+        }
         v.setXY(v.getX()/mag*magNew,v.getY()/mag*magNew);
     }
     public static orthogonal(v: Vector){
@@ -254,7 +257,10 @@ class ZeroVector extends PVector {
         super.addY(0);
     }
     public setXY(x: number, y: number){
-        console.log("Called setXY on a zero vector!");
+        if(x!=0 || y!=0){
+            console.log("Called setXY on a zero vector!");
+            console.trace();
+        }
         super.setXY(0,0);
     }
 }
