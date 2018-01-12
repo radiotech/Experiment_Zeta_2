@@ -5,10 +5,22 @@ var Dim = /** @class */ (function () {
         for (var i = 0; i < Dim.w; i++) {
             this.blocks[i] = [];
             for (var j = 0; j < Dim.h; j++) {
-                this.blocks[i][j] = new Tile(i, j, Material.byID[0]);
+                this.blocks[i][j] = new Tile(this, i, j);
+            }
+        }
+        for (var i = 0; i < Dim.w; i++) {
+            for (var j = 0; j < Dim.h; j++) {
+                this.blocks[i][j].setup();
             }
         }
     }
+    Dim.prototype.update = function () {
+        for (var i = 0; i < Dim.w; i++) {
+            for (var j = 0; j < Dim.h; j++) {
+                this.blocks[i][j].update(Update.GRAVITY);
+            }
+        }
+    };
     Dim.prototype.isUp = function (x, y) {
         return (this.getX(x) % 2 == this.getY(y) % 2);
     };
@@ -139,22 +151,69 @@ var Dim = /** @class */ (function () {
     return Dim;
 }());
 var Tile = /** @class */ (function () {
-    function Tile(i, j, m) {
+    function Tile(dim, i, j) {
+        this.dim = dim;
         this.i = i;
         this.j = j;
-        this.m = m;
+        this.updated = -1;
+        this.m = Material.byID[0];
         this.name = "(" + i + "," + j + ")";
         this.solids = [];
+        this.gravity = new PVector();
+        this.surfaceDis = Infinity;
     }
     Tile.setup = function () {
         Tile.axisParas = Bound.findParas([new PVector(W, H), new PVector(-W, H), new PVector(0, 0)]);
         Tile.axisOrths = Bound.findOrths(Tile.axisParas);
+    };
+    Tile.prototype.setup = function () {
+        this.isUp = this.i % 2 == this.j % 2;
+        this.left = this.dim.get(this.dim.shiftX(this.i, -1), this.j);
+        this.right = this.dim.get(this.dim.shiftX(this.i, 1), this.j);
+        this.vert = this.dim.get(this.i, this.dim.shiftY(this.j, this.isUp ? 1 : -1));
+        this.leftDir = new UnitVector(-3 * W, this.isUp ? -H : H);
+        this.rightDir = new UnitVector(3 * W, this.isUp ? -H : H);
+        this.vertDir = new UnitVector(0, this.isUp ? 1 : -1);
     };
     Tile.prototype.registerSolid = function (s) {
         this.solids.push(s);
     };
     Tile.prototype.unregisterSolid = function (s) {
         this.solids = this.solids.filter(function (_s) { return _s.id != s.id; });
+    };
+    Tile.prototype.update = function (type) {
+        var sides = [{ t: this.left, d: this.leftDir }, { t: this.right, d: this.rightDir }, { t: this.vert, d: this.vertDir }];
+        if (type == Update.GRAVITY) {
+            var newGravity_1 = new PVector();
+            sides.forEach(function (s) {
+                if (s.t.m.solid) {
+                    newGravity_1.addX(s.d.x * s.t.m.mass);
+                    newGravity_1.addY(s.d.y * s.t.m.mass);
+                }
+            });
+            var maxGravityNear_1 = PVector.zero;
+            sides.forEach(function (s) {
+                if (s.t.gravity.getMag() > maxGravityNear_1.getMag()) {
+                    maxGravityNear_1 = s.t.gravity;
+                }
+            });
+            if (maxGravityNear_1.getMag() * .9 > newGravity_1.getMag()) {
+                VecOp.match(newGravity_1, maxGravityNear_1);
+                VecOp.mult(newGravity_1, .9);
+            }
+            //newGravity = new PVector();
+            if (newGravity_1.x != this.gravity.x || newGravity_1.y != this.gravity.y) {
+                if (newGravity_1.getMag() > 0 && this.gravity.getMag() > 0) {
+                    //console.log(newGravity,this.gravity);
+                }
+                this.gravity = newGravity_1;
+                sides.forEach(function (s) { return s.t.update(Update.GRAVITY); });
+            }
+        }
+        else if (type == Update.TEST) {
+            this.m = Material.byName['red'];
+            sides.forEach(function (s) { return s.t.m = Material.byName['red']; });
+        }
     };
     Tile.prototype["export"] = function () {
         return this.m.name;
@@ -164,275 +223,10 @@ var Tile = /** @class */ (function () {
     };
     return Tile;
 }());
-/*
-
-
-
-class Tri {
-    public static w: number;
-    public static h: number;
-
-    public spot: Vector;
-    public pos: Vector;
-    public posMin: Vector;
-    public up: boolean;
-    public tri: Tri[];
-    public ver: Ver[];
-    public objs: Obj[];
-    public gravity: Vector;
-    public material: Material;
-
-    public color: number;
-
-    constructor(i,j) {
-        this.spot = Vector.spot(i,j);
-        this.pos = this.spot;
-        Tri.spotToPos(this.pos);
-        this.posMin = this.spot.clone();
-        Tri.spotToPosMin(this.posMin);
-        this.up = i%2==j%2;
-        this.tri = [];
-        this.ver = [];
-        this.objs = [];
-        this.gravity = Vector.zero();
-        this.material = Material.byName.air;
+var Update = /** @class */ (function () {
+    function Update() {
     }
-    public add(obj: Obj){
-        this.remove(obj);
-        this.objs.push(obj);
-    }
-    public remove(obj: Obj){
-        for(let i = 0; i < this.objs.length; i++){
-            if(this.objs[i] == obj){
-                this.objs.splice(i,1);
-            }
-        }
-    }
-
-    public static posToSpot(v: Vector){
-        v.i = v.x/Tri.w*2;
-        v.j = v.y/Tri.h;
-        let di = v.i%1;
-        let dj = v.j%1;
-        v.i = Math.floor(v.i);
-        v.j = Math.floor(v.j);
-        if(v.i%2!=v.j%2){
-            if(1-di>dj){
-                v.i--;
-            }
-        } else {
-            if(di<dj){
-                v.i--;
-            }
-        }
-        return v;
-    }
-    public static fixSpot(v: Vector){
-        v.i = Main.fixI(v.i);
-        v.j = Main.fixJ(v.j);
-        return v;
-    }
-    public static drawSpotSize(g: PIXI.Graphics, pos: Vec, size: Vec, odd: boolean){
-        if(odd){
-            g.moveTo(pos.getX(),pos.getY()+size.getY());
-            g.lineTo(pos.getX()+size.getX(), pos.getY()+size.getY());
-            g.lineTo(pos.getX()+size.getX()/2, pos.getY());
-        } else {
-            g.moveTo(pos.getX(),pos.getY());
-            g.lineTo(pos.getX()+size.getX(), pos.getY());
-            g.lineTo(pos.getX()+size.getX()/2, pos.getY()+size.getY());
-        }
-        g.endFill();
-    }
-    public static spotToPos(v: Vector){
-        v.x = (v.i/2+.5)*Tri.w;
-        v.y = (v.j+(v.i%2==v.j%2?1:2)/3)*Tri.h;
-    }
-    public static spotToPosV(v: Vec){
-        v.setXY((v.getX()/2+.5)*Tri.w,
-        (v.getY()+(v.getX()%2==v.getY()%2?1:2)/3)*Tri.h);
-    }
-    public static spotToPosMin(v: Vector){
-        v.x = v.i/2*Tri.w;
-        v.y = v.j*Tri.h;
-    }
-}
-
-class Ver {
-    spot: Vector;
-    pos: Vector;
-    tri: Tri[];
-    mass: number;
-    constructor(i: number, j: number) {
-        this.spot = Vector.spot(i,j);
-        this.pos = this.spot;
-        Ver.spotToPos(this.pos);
-        this.tri = [];
-        this.mass = 0;
-    }
-    public static spotToPos(v: Vector){
-        let temp = Vector.spot(v.i*2+v.j%2,v.j);
-        Tri.spotToPosMin(temp);
-        v.x = temp.x;
-        v.y = temp.y;
-    }
-}
-
-class Dimension {
-    static dimensions: Dimension[] = [];
-    static w: number;
-    static h: number;
-    tri: Tri[][];
-    ver: Ver[][];
-
-    static update(){
-        for(let i = 0; i < Dimension.dimensions.length; i++){
-            Dimension.dimensions[i].update();
-        }
-    }
-    constructor() {
-        Dimension.dimensions.push(this);
-        this.tri = [];
-        this.ver = [];
-
-        //setup grid
-        for(let i = 0; i < Dimension.w; i++){
-            this.tri[i] = [];
-            for(let j = 0; j < Dimension.h; j++){
-                this.tri[i][j] = new Tri(i,j);
-            }
-        }
-
-        //make planet
-        for(let i = 11; i < 14; i++){
-            for(let j = 4; j < 6; j++){
-                this.tri[i][j].material = Material.byName.iron;
-            }
-        }
-
-
-        //radial color
-        let hitTri = [];
-        for(let i = 0; i < Dimension.w; i++){
-            hitTri[i] = [];
-            for(let j = 0; j < Dimension.h; j++){
-                hitTri[i][j] = false;
-            }
-        }
-        let hitTriX = [];
-        let hitTriY = [];
-
-        let lastNew = 0;
-        let grain = Tri.w/100;
-        let r = 0;
-        while(lastNew<Tri.w*2){
-            r += grain;
-            lastNew += grain;
-
-            let dDir = Math.PI*2/(2*Math.PI*r/grain);
-            for(let dir = 0; dir < Math.PI*2; dir+=dDir){
-                let pos = Vector.pos(this.tri[0][0].pos.x/2-Math.cos(dir)*r,this.tri[0][0].pos.x/2+Math.sin(dir)*r);
-                Tri.posToSpot(pos);
-                Tri.fixSpot(pos);
-                if(!hitTri[pos.i][pos.j]){
-                    lastNew = 0;
-                    hitTri[pos.i][pos.j] = true;
-                    hitTriX[hitTriX.length] = pos.i;
-                    hitTriY[hitTriY.length] = pos.j;
-                }
-            }
-        }
-
-        for(let i = 0; i < hitTriX.length; i++){
-            this.tri[hitTriX[i]][hitTriY[i]].color = 0xff0000-i*160;//i%256 << 16 + Math.floor(i/255)%255<<8;
-        }
-
-
-        //setup verticies
-        for(let i = 0; i < Dimension.w/2; i++){
-            this.ver[i] = [];
-            for(let j = 0; j < Dimension.h; j++){
-                this.ver[i][j] = new Ver(i,j);
-
-                let pos = this.ver[i][j].pos;
-                for(let k = 0; k < 6; k++){
-                    let dir = Math.PI/6+Math.PI/3*k;
-                    let spot = Vector.pos(pos.x-Math.cos(dir)/2,pos.y+Math.sin(dir)/2);
-                    Tri.posToSpot(spot);
-                    Tri.fixSpot(spot);
-                    this.ver[i][j].tri[k] = this.tri[spot.i][spot.j];
-
-                    this.ver[i][j].mass += this.ver[i][j].tri[k].material.mass/3;
-
-                    if(i>0 && j > 0){
-                        let pt = new PIXI.Graphics();
-                        pt.beginFill(0xff00ff);
-                        
-                        Main.drawPt(pt,(this.ver[i][j].tri[k].pos.x+pos.x)/2,(this.ver[i][j].tri[k].pos.y+pos.y)/2);
-                        Main.app.stage.addChild(pt);
-                    }
-                }
-
-                for(let k = 0; k < 6; k++){
-                    this.ver[i][j].tri[k].tri[this.ver[i][j].tri[k].tri.length] = this.ver[i][j].tri[(k+1)%6];
-                }
-
-                let pt = new PIXI.Graphics();
-                pt.beginFill(0x00ff00);
-                Main.drawPt(pt,pos.x,pos.y);
-                Main.app.stage.addChild(pt);
-
-            }
-        }
-
-        //gravity
-        for(let vi = 0; vi < Dimension.w/2; vi++){
-            for(let vj = 0; vj < Dimension.h; vj++){
-                if(this.ver[vi][vj].mass > 0){
-                    let mass = this.ver[vi][vj].mass;
-                    let x1 = this.ver[vi][vj].pos.x;
-                    let y1 = this.ver[vi][vj].pos.y;
-                    for(let ti = 0; ti < Dimension.w; ti++){
-                        for(let tj = 0; tj < Dimension.h; tj++){
-                            let x2 = this.tri[ti][tj].pos.x;
-                            let y2 = this.tri[ti][tj].pos.y;
-                            let d = Main.disTo(x1,y1,x2,y2);
-                            let pull = mass/d/10;
-                            this.tri[ti][tj].gravity.x += pull*(x1-x2)/d;
-                            this.tri[ti][tj].gravity.y += pull*(y1-y2)/d;
-                        }
-                    }
-                }
-            }
-        }
-    }
-    public fixXY(v: Vec){
-        if(v.getY()<0){
-            v.setY(v.getY()+Dimension.h*Tri.h);
-            this.fixXY(v);
-        } else if(v.getY()>=Dimension.h*Tri.h) {
-            v.setY(v.getY()-Dimension.h*Tri.h);
-            this.fixXY(v);
-        } else {
-            let t = Vector.pos(v.getX(),v.getY());
-            Tri.posToSpot(t);
-            if(t.i < 0){
-                v.setX(v.getX()+Dimension.w/2);
-                this.fixXY(v);
-            } else if(t.i >= Dimension.w) {
-                v.setX(v.getX()-Dimension.w/2);
-                this.fixXY(v);
-            }
-        }
-    }
-    public triAtPos(x: number, y: number){
-        let v = Vector.pos(x,y);
-        Tri.posToSpot(v);
-        Tri.fixSpot(v);
-        return this.tri[v.i][v.j];
-    }
-    public update(){
-        
-    }
-}
-*/ 
+    Update.GRAVITY = 0;
+    Update.TEST = 99;
+    return Update;
+}());

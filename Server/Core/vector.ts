@@ -123,7 +123,7 @@ class VecOp {
 }
 
 class PVector implements Vector {
-    static zero;
+    static zero: PVector;
     protected _x: number;
     protected _y: number;
     protected mag: number;

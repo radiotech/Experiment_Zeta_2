@@ -22,7 +22,6 @@ class Main {
 
         Main.im = Main.app.renderer.plugins.interaction;
         
-        
         PVector.setup();
         Damper.setup();
         View.setup();
@@ -81,6 +80,8 @@ class Main {
 ["air","air","air","air","air","air","air","air","air","air","air","air","iron","air","air","air","air","air","air","air","air","air","air","air"],
 ["iron","air","air","air","air","air","air","air","air","air","air","iron","iron","air","air","air","air","air","air","air","air","air","air","iron"]]
         `));
+        Main.dim.update();
+        
         new View(Main.dim, new PVector(0,0), 15);
 
         let solid = new Solid({dim: Main.dim, x: 2, y: 2.1, color: 0xbb00ff, bound: Bound.ellipse(1), width: 1, height: 1});

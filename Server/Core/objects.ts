@@ -39,7 +39,7 @@ class Solid {
         this.c = args.color || 0xff0000;
         this.w = args.width || 1;
         this.h = args.height || 1;
-        this.mass = args.mass || 1;
+        this.mass = args.mass || .001;
         this.bound = args.bound || Bound.ellipse(this.w);
         this.deltaMove = args.deltaMove || this.bound.length>1?VecOp.dis(this.bound[0],this.bound[1]):this.w/10;
         this.deltaTouch = args.deltaTouch || this.deltaMove / 10;

@@ -28,7 +28,7 @@ class Material {
         this.name = data.name || ('Material_'+Material.byID.length);
         this.color = data.color!=undefined?data.color:0xff0000;
         this.solid = data.solid!=undefined?data.solid:true;
-        this.mass = data.mass!=undefined?data.mass:10;
+        this.mass = data.mass!=undefined?data.mass:(this.solid?1:0);
         this.drag = data.drag || (this.solid?new Damper(.98,.002):new Damper(.995,0));
         this.friction = data.friction || new Damper(.98,.002);
         this.bounce = data.bounce || new Damper(0,0);
