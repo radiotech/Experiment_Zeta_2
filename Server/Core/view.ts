@@ -48,7 +48,6 @@ class View {
             this.dim.setAt(v.getX(), v.getY(), Material.byID[(this.dim.getAt(v.getX(),v.getY()).m.id+1)%5]);
         }));
         UI.holds.add('mb_1', new NamedFunction('mclick', ()=>{
-            
             for(let i = 0; i < Dim.w; i++){
                 for(let j = 0; j < Dim.h; j++){
                     this.dim.set(i,j,Material.byID[0]);

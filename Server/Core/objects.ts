@@ -8,6 +8,7 @@ class Solid {
     c: number;
     w: number;
     h: number;
+    mass: number;
     bound: Vector[];
     deltaMove: number;
     deltaTouch: number;
@@ -19,6 +20,7 @@ class Solid {
     a: Vector;
     boundHeight: number;
     boundWidth: number;
+    gridTile: Tile;
     tile: Tile;
     tiles: Tile[];
 
@@ -27,7 +29,7 @@ class Solid {
     }
 
     constructor(args){
-        //dim, x, y, color, w, h, bound, deltaMove, deltaTouch
+        //dim, x, y, color, w, h, mass, bound, deltaMove, deltaTouch
 
         this.dim = args.dim;
         this.p = new PVector(args.x || 0,args.y || 0);
@@ -37,11 +39,13 @@ class Solid {
         this.c = args.color || 0xff0000;
         this.w = args.width || 1;
         this.h = args.height || 1;
+        this.mass = args.mass || 1;
         this.bound = args.bound || Bound.ellipse(this.w);
         this.deltaMove = args.deltaMove || this.bound.length>1?VecOp.dis(this.bound[0],this.bound[1]):this.w/10;
         this.deltaTouch = args.deltaTouch || this.deltaMove / 10;
         this.boundWidth = this.w/4;
         this.boundHeight = this.w/4/W;
+        this.gridTile = undefined;
         this.tile = undefined;
         this.tiles = [];
         if(this.dim == undefined){
@@ -115,7 +119,14 @@ class Solid {
     }
     update(){
         VecOp.match(this._p,this.p);
+        
         VecOp.add(this.v,this.a);
+
+        if(this.tile != undefined){
+            this.v.addX(this.tile.gravity.x*this.mass);
+            this.v.addY(this.tile.gravity.y*this.mass);
+        }
+        
         
         this.tiles.forEach(t=>t.m = Material.byName['red']);
         let drag = Damper.none;
@@ -178,12 +189,13 @@ class Solid {
             }
         }
         
-        if(this.tile!=undefined){
-            this.tile.unregisterSolid(this)
+        if(this.gridTile!=undefined){
+            this.gridTile.unregisterSolid(this)
         };
-        this.tile = this.dim.getLeft(this.p.x,this.p.y);
+        this.gridTile = this.dim.getLeft(this.p.x,this.p.y);
+        this.tile = this.dim.getAt(this.p.x,this.p.y);
         this.tiles = this.touches();
-        this.tile.registerSolid(this);
+        this.gridTile.registerSolid(this);
     }
     draw(g: PIXI.Graphics, x: number, y: number, w: number, h: number){
 
@@ -315,163 +327,6 @@ class Solid {
         }
         return tiles;
     }
-    /*
-    moveByOLD(offset: Vector){
-        if(offset.getX() == 0 && offset.getY() == 0){ //no movement
-            return undefined;
-        }
-        if(!this.touches()){ //only check for collisions if not already colliding
-            let steps = Math.ceil(offset.getMag()/this.deltaMove);
-            let stepX = offset.getX()/steps;
-            let stepY = offset.getY()/steps;
-            for(let i = 1; i <= steps; i++){
-                let touchData: any = this.touches(stepX*i,stepY*i,true);
-                if(touchData != undefined){
-                    let touch = this.touch(stepX*(i-1),stepY*(i-1),stepX*i,stepY*i);
-                    VecOp.add(this.p,touch.off);
-                    if(touch.data != undefined){
-                        touchData = touch.data;
-                    }
-                    return {force:new PVector(offset.x-touch.off.x,offset.y-touch.off.y),surface:touchData};
-                }
-            }
-        }
-        VecOp.add(this.p,offset);
-        return undefined;
-    }
-    */
-    /*
-    touches(offX = 0, offY = 0, reportSide = false){
-        //checks if this object collides with blocks with a given offset from current pos
-        let posX = this.p.getX()+offX;
-        let posY = this.p.getY()+offY;
-        let pos = new PVector(posX,posY);
-        if(this.bound.length > 1){
-            //outer bound
-            let outerX1 = posX-this.outerBox.getX()/2;
-            let outerY1 = posY-this.outerBox.getY()/2;
-            let outerX2 = posX+this.outerBox.getX()/2;
-            let outerY2 = posY+this.outerBox.getY()/2;
-            //inner bound
-            let innerX1 = posX-this.innerBox.getX()/2;
-            let innerY1 = posY-this.innerBox.getY()/2;
-            let innerX2 = posX+this.innerBox.getX()/2;
-            let innerY2 = posY+this.innerBox.getY()/2;
-            //find hits
-            let hits = this.dim.blocksInRegion(outerX1,outerY1,outerX2,outerY2);
-            //copy type of hits
-            let innerHits = hits; 
-            let outerHits = hits;
-            innerHits = [];
-            outerHits = [];
-            //sort hits into inner (collide) and outer (might collide)
-            for(let i = 0; i < hits.length; i++) {
-                let h = hits[i];
-                let dis = VecOp.dis(pos,h.p);
-                if(dis < this.outerRadius){
-                    if(dis < this.innerRadius || (h.p.getX()>innerX1&&h.p.getX()<innerX2&&h.p.getY()>innerY1&&h.p.getY()<innerY2)){
-                        innerHits.push(h);
-                    } else {
-                        outerHits.push(h);
-                    }
-                }
-            }
-            //if inner has solid, touching
-            for(let i = 0; i < innerHits.length; i++) {
-                let h = innerHits[i];
-                if(h.b.some(x=>x.solid)){
-                    if(reportSide){
-                        let angles = Bound.boundAngles(h.p,posX,posY,this.bound);
-                        let inSide = this.inSide(angles);
-                        return {
-                            para: this.boundParas[inSide],
-                            orth: this.boundOrths[inSide],
-                            tiles: h.b.filter(b=>b.solid)
-                        }
-                    } else {
-                        console.log(1);
-                        return true;
-                    }
-                }
-            }
-            //if outer has solid and is within the bounds, touching
-            for(let i = 0; i < outerHits.length; i++) {
-                let h = outerHits[i];
-                if(h.b.some(x=>x.solid)){
-                    let angles = Bound.boundAngles(h.p,posX,posY,this.bound);
-                    if(this.containsPoint(angles)){
-                        if(reportSide){
-                            let inSide = this.inSide(angles);
-                            return {
-                                para: this.boundParas[inSide],
-                                orth: this.boundOrths[inSide],
-                                tiles: h.b.filter(b=>b.solid)
-                            }
-                        } else {
-                            console.log(1);
-                            return true;
-                        }
-                    }
-                }
-            }
-        }
-        for(let i = 0; i < this.bound.length; i++){
-            let hitPos = new PVector(posX+this.bound[i].getX(),posY+this.bound[i].getY());
-            let tile = this.dim.getAt(hitPos.getX(),hitPos.getY());
-            if(tile.solid){
-                if(reportSide){
-                    let tilePos = this.dim.originAt(hitPos);
-                    let useUp = this.dim.isUpAt(hitPos.x,hitPos.y);
-                    let inSide = this.inSide(Bound.boundAngles(hitPos,tilePos.x,tilePos.y,useUp?Tile.upBound:Tile.dnBound));
-                    return {
-                        para: useUp?Tile.upBoundParas[inSide]:Tile.dnBoundParas[inSide],
-                        orth: useUp?Tile.upBoundOrths[inSide]:Tile.dnBoundOrths[inSide],
-                        tiles: [this.dim.getAt(hitPos.getX(),hitPos.getY())]
-                    }
-                } else {
-                    console.log(1);
-                    return true;
-                }
-            }
-        }
-        return reportSide?undefined:false;
-    }
-    */
-    /*
-    touch(offXA: number, offYA: number, offXB: number, offYB: number){
-        //given point A, known not touching, and point b, known touching, returns a point c, <= deltaTouch from touching
-        let touchData = undefined;
-        let lastTouchData = undefined;
-        let disX = offXB-offXA;
-        let disY = offYB-offYA;
-        let offX = disX/2;
-        let offY = disY/2;
-        let shiftX = disX/2;
-        let shiftY = disY/2;
-        let shift = Math.sqrt(disX*disX+disY*disY)/2;
-        while(shift > this.deltaTouch){
-            shiftX /= 2;
-            shiftY /= 2;
-            shift /= 2;
-            touchData = this.touches(offXA+offX,offYA+offY,true);
-            if(touchData != undefined){
-                lastTouchData = touchData;
-                offX -= shiftX;
-                offY -= shiftY;
-            } else {
-                offX += shiftX;
-                offY += shiftY;
-            }
-        }
-        touchData = this.touches(offXA+offX,offYA+offY,true);
-        if(touchData != undefined){
-            lastTouchData = touchData;
-            offX -= shiftX;
-            offY -= shiftY;
-        }
-        return {off: new PVector(offXA+offX,offYA+offY), data: lastTouchData};
-    }
-    */
     containsPoint(angles: number[]){
         let dirs = angles.map(a=>a).sort((a,b)=>a-b);
         let dif = 0;
@@ -487,21 +342,6 @@ class Solid {
         }
         return true;
     }
-    /*
-    inSide(angles: number[]){
-        let maxI = 0;
-        let max = 0;
-        let dif = 0;
-        for(let i = 0; i < angles.length; i++){
-            dif = Main.angleDif(angles[(i+1)%angles.length],angles[i]);
-            if(dif > max){
-                maxI = i;
-                max = dif;
-            }
-        }
-        return maxI;
-    }
-    */
 }
 
 class Bound {
